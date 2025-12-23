@@ -4,100 +4,72 @@
 
 <head>
     <title>S3 Manager</title>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-
-    <link rel="stylesheet" href="{{$.RootURL}}/static/css/material-fonts.css" />
-    <link rel="stylesheet" href="{{$.RootURL}}/static/css/materialize.min.css" />
-    <style>
-        .s3-instance-switcher {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-        .s3-instance-button {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-        .s3-instance-button:hover {
-            background-color: #1976D2;
-        }
-        .s3-instance-dropdown {
-            position: absolute;
-            bottom: 65px;
-            left: 0;
-            background: white;
-            border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            min-width: 200px;
-            display: none;
-        }
-        .s3-instance-item {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
-        }
-        .s3-instance-item:hover {
-            background-color: #f5f5f5;
-        }
-        .s3-instance-item.active {
-            background-color: #e3f2fd;
-            color: #1976d2;
-            font-weight: bold;
-        }
-        .s3-instance-item:last-child {
-            border-bottom: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{{$.RootURL}}/static/css/shadcn.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z'/></svg>">
 </head>
 
 <body>
-
-    {{ template "content" . }}
+    <div class="app-container">
+        {{ template "content" . }}
+    </div>
 
     <!-- S3 Instance Switcher -->
     {{ if and .S3Instances (gt (len .S3Instances) 1) }}
-    <div class="s3-instance-switcher">
-        <button class="s3-instance-button" onclick="toggleS3Dropdown()">
-            <i class="material-icons">storage</i>
+    <div class="instance-switcher">
+        <button class="instance-btn" onclick="toggleS3Dropdown()" aria-label="Switch S3 Instance">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                <path d="M3 12A9 3 0 0 0 21 12"/>
+            </svg>
         </button>
-        <div id="s3-instance-dropdown" class="s3-instance-dropdown">
+        <div id="s3-instance-dropdown" class="instance-dropdown">
             {{ range .S3Instances }}
-            <div class="s3-instance-item {{ if eq .ID $.CurrentS3.ID }}active{{ end }}" 
+            <div class="instance-item {{ if eq .ID $.CurrentS3.ID }}active{{ end }}" 
                  onclick="switchS3Instance('{{ .ID }}', '{{ .Name }}')">
-                {{ .Name }}
+                <div class="instance-item-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                        <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                        <path d="M3 12A9 3 0 0 0 21 12"/>
+                    </svg>
+                </div>
+                <span>{{ .Name }}</span>
             </div>
             {{ end }}
         </div>
     </div>
     {{ end }}
 
-    <script
-      src="{{$.RootURL}}/static/js/jquery-3.6.0.min.js"
-    ></script>
-    <script src="{{$.RootURL}}/static/js/materialize.min.js"></script>
-    <script>
-        $(document).ready(function(){
-            $('.dropdown-trigger').dropdown();
-            $('.modal').modal();
-        });
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
 
+    <script src="{{$.RootURL}}/static/js/jquery-3.6.0.min.js"></script>
+    <script>
+        // Toast notification system
+        function showToast(title, description, type = 'default') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `
+                <div class="toast-title">${title}</div>
+                ${description ? `<div class="toast-description">${description}</div>` : ''}
+            `;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideInRight 0.2s ease reverse forwards';
+                setTimeout(() => toast.remove(), 200);
+            }, 3000);
+        }
+
+        // Dropdown management
         function toggleS3Dropdown() {
             const dropdown = document.getElementById('s3-instance-dropdown');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            dropdown.classList.toggle('active');
         }
 
         function switchS3Instance(instanceId, instanceName) {
@@ -105,27 +77,61 @@
                 type: 'POST',
                 url: '{{$.RootURL}}/api/s3-instances/' + instanceId + '/switch',
                 success: function() {
-                    // Show toast notification
-                    M.toast({html: 'Switched to: ' + instanceName});
-                    // Always redirect to buckets list when switching instances
+                    showToast('Instance Switched', 'Now using: ' + instanceName);
                     setTimeout(function() {
                         window.location.href = '{{$.RootURL}}/buckets';
                     }, 1000);
                 },
                 error: function() {
-                    M.toast({html: 'Failed to switch S3 instance'});
+                    showToast('Error', 'Failed to switch S3 instance');
                 }
             });
-            // Hide dropdown
-            document.getElementById('s3-instance-dropdown').style.display = 'none';
+            document.getElementById('s3-instance-dropdown').classList.remove('active');
         }
 
-        // Close dropdown when clicking outside
+        // Close dropdowns when clicking outside
         document.addEventListener('click', function(event) {
-            const switcher = document.querySelector('.s3-instance-switcher');
+            // S3 Instance Dropdown
+            const switcher = document.querySelector('.instance-switcher');
             const dropdown = document.getElementById('s3-instance-dropdown');
-            if (!switcher.contains(event.target)) {
-                dropdown.style.display = 'none';
+            if (switcher && dropdown && !switcher.contains(event.target)) {
+                dropdown.classList.remove('active');
+            }
+            
+            // Close all action dropdowns
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                if (!menu.parentElement.contains(event.target)) {
+                    menu.classList.remove('active');
+                }
+            });
+        });
+
+        // Modal management
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal on overlay click
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                    modal.classList.remove('active');
+                });
+                document.body.style.overflow = '';
             }
         });
     </script>

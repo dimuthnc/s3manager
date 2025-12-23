@@ -1,111 +1,165 @@
 {{ define "content" }}
-<nav>
-    <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}" class="brand-logo">S3 Manager</a>
+<!-- Navbar -->
+<nav class="navbar">
+    <a href="{{$.RootURL}}" class="navbar-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+        </svg>
+        S3 Manager
+    </a>
+    <div class="navbar-actions">
         {{ if .CurrentS3 }}
-        <span class="right">
-            <i class="material-icons left">storage</i>{{ .CurrentS3.Name }}
-        </span>
+        <div class="flex items-center gap-2">
+            <span class="badge badge-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                    <path d="M3 12A9 3 0 0 0 21 12"/>
+                </svg>
+                {{ .CurrentS3.Name }}
+            </span>
+        </div>
         {{ end }}
     </div>
 </nav>
 
-<div class="container">
-    <div class="section">
-        <div class="row">
-
-            {{ if .HasError }}
-            <div class="col s12">
-                <div class="card red lighten-4">
-                    <div class="card-content">
-                        <div class="row">
-                            <div class="col s2">
-                                <i class="material-icons large red-text">error</i>
-                            </div>
-                            <div class="col s10">
-                                <span class="card-title red-text text-darken-2">Connection Error</span>
-                                <p>{{ .ErrorMessage }}</p>
-                                {{ if gt (len .S3Instances) 1 }}
-                                <p><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.</p>
-                                {{ end }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<main class="main-content">
+    {{ if .HasError }}
+    <!-- Error State -->
+    <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div class="alert-content">
+            <div class="alert-title">Connection Error</div>
+            <div class="alert-description">
+                {{ .ErrorMessage }}
+                {{ if gt (len .S3Instances) 1 }}
+                <br><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.
+                {{ end }}
             </div>
-            {{ else if .Buckets }}
-            {{ range $bucket := .Buckets }}
-            <div class="col l6 m12">
-                <a href="{{$.RootURL}}/buckets/{{ $bucket.Name }}" style="color:black;">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="row">
-                                <div class="col">
-                                    <i class="material-icons large">folder_open</i>
-                                </div>
-                                <div class="col">
-                                    <span class="card-title">
-                                        {{ $bucket.Name }}
-                                    </span>
-                                    <p style="color:gray;">Created on {{ $bucket.CreationDate }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            {{ end }}
-            {{ else }}
-            <p style="text-align:center;margin-top:2em;color:gray;">No buckets yet</p>
-            {{ end }}
-
         </div>
     </div>
-</div>
+    {{ else }}
+    
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 style="font-size: 1.5rem; font-weight: 600; color: hsl(var(--foreground));">Buckets</h1>
+            <p class="text-sm text-muted mt-1">Manage your S3 storage buckets</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-create-bucket')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            New Bucket
+        </button>
+    </div>
 
-{{ if not .HasError }}
-<div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red modal-trigger" data-target="modal-create-bucket">
-        <i class="material-icons large">add</i>
-    </button>
-</div>
-{{ end }}
+    {{ if .Buckets }}
+    <!-- Buckets Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {{ range $bucket := .Buckets }}
+        <a href="{{$.RootURL}}/buckets/{{ $bucket.Name }}" class="bucket-card card card-hover">
+            <div class="bucket-card-inner">
+                <div class="bucket-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                    </svg>
+                </div>
+                <div class="bucket-info">
+                    <div class="bucket-name truncate">{{ $bucket.Name }}</div>
+                    <div class="bucket-meta">Created {{ $bucket.CreationDate }}</div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                    <polyline points="9 18 15 12 9 6"/>
+                </svg>
+            </div>
+        </a>
+        {{ end }}
+    </div>
+    {{ else }}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <svg class="empty-state-icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+            <line x1="12" y1="10" x2="12" y2="16"/>
+            <line x1="9" y1="13" x2="15" y2="13"/>
+        </svg>
+        <h3 class="empty-state-title">No buckets yet</h3>
+        <p class="empty-state-description">Get started by creating your first S3 bucket to store your files.</p>
+        <button class="btn btn-primary" onclick="openModal('modal-create-bucket')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Create Bucket
+        </button>
+    </div>
+    {{ end }}
+    {{ end }}
+</main>
 
-<div id="modal-create-bucket" class="modal">
-    <form id="create-bucket-form">
-        <div class="modal-content">
-            <h4>Create Bucket</h4>
-            <br>
-            <div class="row">
-                <div class="input-field col m6">
-                    <input id="name" type="text" name="name" placeholder="My Bucket">
-                    <label for="name">Name</label>
+<!-- Create Bucket Modal -->
+<div id="modal-create-bucket" class="modal-overlay">
+    <div class="modal">
+        <form id="create-bucket-form">
+            <div class="modal-header">
+                <h2 class="modal-title">Create New Bucket</h2>
+                <p class="modal-description">Enter a unique name for your new S3 bucket.</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="label" for="bucket-name">Bucket Name</label>
+                    <input 
+                        type="text" 
+                        id="bucket-name" 
+                        name="name" 
+                        class="input" 
+                        placeholder="my-bucket-name"
+                        autocomplete="off"
+                    >
+                    <p class="form-hint">Use lowercase letters, numbers, and hyphens only.</p>
                 </div>
             </div>
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="button" class="modal-close waves-effect waves-green btn" onclick="createBucket()">Create</button>
-        </div>
-    </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-create-bucket')">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createBucket()">Create Bucket</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
     function createBucket() {
         var formData = {};
-        $.each($('#create-bucket-form')
-            .serializeArray(), function(i, field) {
-                formData[field.name] = field.value;
-            });
+        $.each($('#create-bucket-form').serializeArray(), function(i, field) {
+            formData[field.name] = field.value;
+        });
+        
+        if (!formData.name || formData.name.trim() === '') {
+            showToast('Error', 'Please enter a bucket name');
+            return;
+        }
+        
         $.ajax({
             type: 'POST',
             url: '/api/buckets',
             data: JSON.stringify(formData),
             dataType: 'json',
             contentType: 'application/json; charset=utf-8',
-            success: function() { location.reload(); }
+            success: function() { 
+                showToast('Success', 'Bucket created successfully');
+                setTimeout(() => location.reload(), 500);
+            },
+            error: function(xhr) {
+                showToast('Error', 'Failed to create bucket');
+            }
         });
+        closeModal('modal-create-bucket');
     }
 </script>
 {{ end }}

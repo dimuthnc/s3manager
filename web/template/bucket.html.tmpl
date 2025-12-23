@@ -1,270 +1,397 @@
 {{ define "content" }}
-<style>
-.breadcrumb:before {
-    content: '/';
-}
-#notifications {
-    top: 20px;
-    right: 30px;
-    position: fixed;
-    z-index: 2
-}
-</style>
-
-<nav class="nav-extended">
-    <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}/buckets/{{$.BucketName}}" class="brand-logo center"><i class="material-icons">folder_open</i>{{ .BucketName }}</a>
-        {{ if and (not .Objects) (not .HasError) }}
-        <ul class="right">
-            <li>
-                <a class="waves-effect waves-light btn" href="#" onclick="deleteBucket({{ .BucketName }})">
-                    Delete <i class="material-icons right">delete</i>
-                </a>
-            </li>
-        </ul>
+<!-- Navbar -->
+<nav class="navbar">
+    <a href="{{$.RootURL}}" class="navbar-brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+        </svg>
+        S3 Manager
+    </a>
+    <div class="navbar-actions">
+        {{ if .CurrentS3 }}
+        <span class="badge badge-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+                <path d="M3 12A9 3 0 0 0 21 12"/>
+            </svg>
+            {{ .CurrentS3.Name }}
+        </span>
         {{ end }}
-        <ul class="left">
-            {{ if .CurrentS3 }}
-            <li><span><i class="material-icons left">storage</i>{{ .CurrentS3.Name }}</span></li>
-            {{ end }}
-        </ul>
+        
+        {{ if and (not .Objects) (not .HasError) }}
+        <button class="btn btn-destructive btn-sm" onclick="deleteBucket('{{ .BucketName }}')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            </svg>
+            Delete Bucket
+        </button>
+        {{ end }}
     </div>
-
-    <div class="nav-wrapper container">
-        <a href="{{$.RootURL}}/buckets" class="breadcrumb"><i class="material-icons">arrow_back</i> buckets </a>
-        {{ $url := printf "%s/buckets/%s/" $.RootURL $.BucketName }}
-        <a href="{{ $url }}" class="breadcrumb">{{ $.BucketName }}</a>
-
-        {{ range $index, $path := .Paths }}
-        {{ $url = printf "%s%s/" $url $path }}
-        <a href="{{ $url }}" class="breadcrumb">{{ $path }}</a>
-        {{ end -}}
-    </div>
-  </div>
 </nav>
 
-<div class="section" style="margin: 10px; position: relative;">
+<main class="main-content">
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <div class="breadcrumb-item">
+            <a href="{{$.RootURL}}/buckets">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                </svg>
+                Buckets
+            </a>
+        </div>
+        <span class="breadcrumb-separator">/</span>
+        {{ $url := printf "%s/buckets/%s/" $.RootURL $.BucketName }}
+        <div class="breadcrumb-item">
+            <a href="{{ $url }}">{{ $.BucketName }}</a>
+        </div>
+        {{ range $index, $path := .Paths }}
+        {{ $url = printf "%s%s/" $url $path }}
+        <span class="breadcrumb-separator">/</span>
+        <div class="breadcrumb-item">
+            <a href="{{ $url }}">{{ $path }}</a>
+        </div>
+        {{ end }}
+    </nav>
+
     {{ if .HasError }}
-    <div class="row">
-        <div class="col s12">
-            <div class="card red lighten-4">
-                <div class="card-content">
-                    <div class="row">
-                        <div class="col s1">
-                            <i class="material-icons large red-text">error</i>
-                        </div>
-                        <div class="col s11">
-                            <span class="card-title red-text text-darken-2">Connection Error</span>
-                            <p>{{ .ErrorMessage }}</p>
-                            {{ if gt (len .S3Instances) 1 }}
-                            <p><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.</p>
+    <!-- Error State -->
+    <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+        <svg class="alert-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <div class="alert-content">
+            <div class="alert-title">Connection Error</div>
+            <div class="alert-description">
+                {{ .ErrorMessage }}
+                {{ if gt (len .S3Instances) 1 }}
+                <br><strong>Tip:</strong> Use the instance switcher button (bottom-left) to try a different S3 instance.
+                {{ end }}
+            </div>
+        </div>
+    </div>
+    <a href="{{$.RootURL}}/buckets" class="btn btn-outline">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Back to Buckets
+    </a>
+    {{ else if .Objects }}
+    
+    <!-- Page Header -->
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 style="font-size: 1.5rem; font-weight: 600; color: hsl(var(--foreground));">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                </svg>
+                {{ .BucketName }}
+            </h1>
+            <p class="text-sm text-muted mt-1">{{ len .Objects }} items</p>
+        </div>
+        <div class="flex gap-2">
+            <button class="btn btn-outline" onclick="openModal('modal-change-path')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Go to Path
+            </button>
+            <button class="btn btn-outline" id="upload-folder-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                    <line x1="12" y1="10" x2="12" y2="16"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                </svg>
+                Upload Folder
+            </button>
+            <button class="btn btn-primary" id="upload-file-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Upload Files
+            </button>
+        </div>
+    </div>
+
+    <!-- Objects Table -->
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Size</th>
+                    <th>Owner</th>
+                    <th>Last Modified</th>
+                    <th style="width: 100px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range $index, $object := .Objects }}
+                <tr class="{{ if $object.IsFolder }}table-row-clickable{{ end }}"
+                    {{ if $object.IsFolder }}onclick="location.href='{{$.RootURL}}/buckets/{{ $.BucketName }}/{{ $object.Key }}'"{{ end }}>
+                    <td>
+                        <div class="flex items-center gap-2">
+                            {{ if $object.IsFolder }}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="file-icon folder-icon">
+                                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                            </svg>
+                            {{ else }}
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="file-icon">
+                                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
                             {{ end }}
-                            <div style="margin-top: 20px;">
-                                <a href="{{$.RootURL}}/buckets" class="waves-effect waves-green btn">
-                                    <i class="material-icons left">arrow_back</i>Go back to buckets
+                            <span class="font-medium">{{ $object.DisplayName }}</span>
+                        </div>
+                    </td>
+                    <td class="text-muted">{{ if $object.IsFolder }}-{{ else }}{{ $object.Size }} bytes{{ end }}</td>
+                    <td class="text-muted">{{ $object.Owner }}</td>
+                    <td class="text-muted">{{ $object.LastModified }}</td>
+                    <td>
+                        {{ if not $object.IsFolder }}
+                        <div class="dropdown">
+                            <button class="btn btn-ghost btn-icon btn-sm" onclick="toggleDropdown(event, 'dropdown-{{ $index }}')">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="1"/>
+                                    <circle cx="12" cy="5" r="1"/>
+                                    <circle cx="12" cy="19" r="1"/>
+                                </svg>
+                            </button>
+                            <div id="dropdown-{{ $index }}" class="dropdown-menu">
+                                <a href="{{$.RootURL}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}" target="_blank" class="dropdown-item">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="7 10 12 15 17 10"/>
+                                        <line x1="12" y1="15" x2="12" y2="3"/>
+                                    </svg>
+                                    Download
                                 </a>
+                                <div class="dropdown-item" onclick="handleOpenDownloadLinkModal('{{ $object.Key }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                                    </svg>
+                                    Get Link
+                                </div>
+                                {{- if $.AllowDelete }}
+                                <div class="dropdown-separator"></div>
+                                <div class="dropdown-item dropdown-item-destructive" onclick="deleteObject('{{ $.BucketName }}', '{{ $object.Key }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18"/>
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                    </svg>
+                                    Delete
+                                </div>
+                                {{- end }}
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+                        {{ end }}
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
     </div>
-    {{ else if .Objects }}
-    <table class="striped">
-        <thead>
-            <tr>
-                <th>Key</th>
-                <th>Size</th>
-                <th>Owner</th>
-                <th>Last Modified</th>
-                <th style="min-width:165px;"></th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {{ range $index, $object := .Objects }}
-            <tr>
-                <td
-                    {{ if $object.IsFolder }}
-                    onclick="location.href='{{$.RootURL}}/buckets/{{ $.BucketName }}/{{ $object.Key }}'"}
-                    style="cursor:pointer;"
-                    {{ end }}>
-                    <i class="material-icons">{{ $object.Icon }}</i> {{ $object.DisplayName }}
-                </td>
-                <td>{{ $object.Size }} bytes</td>
-                <td>{{ $object.Owner }}</td>
-                <td>{{ $object.LastModified }}</td>
-                <td>
-                    {{ if not $object.IsFolder }}
-                        <button class="dropdown-trigger waves-effect waves-teal btn" data-target="actions-dropdown-{{ $index }}">
-                            Actions <i class="material-icons right">arrow_drop_down</i>
-                        </button>
-                        <!-- Dropdown Structure -->
-                        <ul id="actions-dropdown-{{ $index }}" class="dropdown-content">
-                            <li><a target="_blank" href="{{$.RootURL}}/api/buckets/{{ $.BucketName }}/objects/{{ $object.Key }}">Download</a></li>
-                            <li><a onclick="handleOpenDownloadLinkModal({{ $object.Key }})">Download link</a></li>
-                            {{- if $.AllowDelete }}
-                            <li><a href="#" onclick="deleteObject({{ $.BucketName }}, {{ $object.Key }})">Delete</a></li>
-                            {{- end }}
-                        </ul>
-                    {{ end }}
-                </td>
-            </tr>
-            {{ end }}
-        </tbody>
-    </table>
     {{ else }}
-    <p style="text-align:center;margin-top:2em;color:gray;">No objects in <strong>{{ .BucketName }}/{{ .CurrentPath }}</strong> yet</p>
-    {{ end }}
-
-    <div id="notifications">
-        <div id="notification-template" class="card" style="display: none;">
-            <div class="card-content" style="padding: 12px">
-                <span class="card-title">Uploading</span>
-                <p> I am a very simple card </p>
-                <div class="progress">
-                    <div class="indeterminate"></div>
-                </div>
-            </div>
+    <!-- Empty State -->
+    <div class="empty-state">
+        <svg class="empty-state-icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="12" x2="12" y2="18"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+        <h3 class="empty-state-title">No objects yet</h3>
+        <p class="empty-state-description">This bucket is empty. Upload files to get started.</p>
+        <div class="flex gap-2">
+            <button class="btn btn-outline" id="upload-folder-btn-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>
+                    <line x1="12" y1="10" x2="12" y2="16"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                </svg>
+                Upload Folder
+            </button>
+            <button class="btn btn-primary" id="upload-file-btn-empty">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Upload Files
+            </button>
         </div>
     </div>
-</div>
+    {{ end }}
+</main>
 
-{{ if not .HasError }}
-<div class="fixed-action-btn">
-    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-file-btn" data-position="top" data-tooltip="Upload files">
-        <i class="large material-icons">add</i>
-    </button>
-
-    <button type="button" class="btn-floating btn-large red tooltipped" id="upload-folder-btn" data-position="top" data-tooltip="Upload folder">
-        <i class="large material-icons">create_new_folder</i>
-    </button>
-
-     <button type="button" class="btn-floating btn-large red modal-trigger tooltipped" data-target="modal-change-path" data-position="top" data-tooltip="Change path">
-        <i class="large material-icons">create</i>
-    </button>
-</div>
-{{ end }}
-
+<!-- Hidden File Inputs -->
 <input type="file" id="upload-folder-input" webkitdirectory multiple style="display: none;">
 <input type="file" id="upload-file-input" name="file" multiple style="display: none;">
 
-<div id="modal-change-path" class="modal">
-    <form id="change-path-form" enctype="multipart/form-data">
-        <div class="modal-content">
-            <h4>Change directory path</h4>
-            <br>
-            <div class="row">
-                <div class="col s6">
-                    <div class="input-field">
-                        <input name="new-path" id="new-path" type="text">
-                        <label for="new-path">Path</label>
-                    </div>
+<!-- Change Path Modal -->
+<div id="modal-change-path" class="modal-overlay">
+    <div class="modal">
+        <form id="change-path-form">
+            <div class="modal-header">
+                <h2 class="modal-title">Navigate to Path</h2>
+                <p class="modal-description">Enter the path you want to navigate to.</p>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="label" for="new-path">Path</label>
+                    <input type="text" id="new-path" name="new-path" class="input" placeholder="folder/subfolder">
                 </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="modal-close waves-effect waves-green btn-flat">Cancel</button>
-            <button type="submit" class="modal-close waves-effect waves-green btn">Change path</button>
-        </div>
-    </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-path')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Navigate</button>
+            </div>
+        </form>
+    </div>
 </div>
 
-<div id="modal-create-download-link" class="modal">
-    <form id="download-link-form">
-        <div class="modal-content">
-            <div class="row">
-                <h4>Create download link for </h4>
-                <input name="objectName" id="objectName" type="text" readonly>
+<!-- Download Link Modal -->
+<div id="modal-download-link" class="modal-overlay">
+    <div class="modal">
+        <form id="download-link-form">
+            <div class="modal-header">
+                <h2 class="modal-title">Generate Download Link</h2>
+                <p class="modal-description">Create a presigned URL for: <strong id="download-link-object-name"></strong></p>
             </div>
-            <div class="row">
-                <div class="col s4">
-                    <div class="input-field">
-                        <input name="day" id="gen-link-day" value="0" type="text" pattern="^[\d]+$" class="validate">
-                        <label for="gen-link-day">Day</label>
-                        <span class="helper-text" data-error="Invalid day format"></span>
+            <div class="modal-body">
+                <input type="hidden" name="objectName" id="objectName">
+                
+                <p class="label mb-2">Link Expiration</p>
+                <div class="grid" style="grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div class="form-group">
+                        <label class="label text-xs text-muted" for="gen-link-day">Days</label>
+                        <input type="number" id="gen-link-day" name="day" class="input" value="0" min="0" max="7">
+                    </div>
+                    <div class="form-group">
+                        <label class="label text-xs text-muted" for="gen-link-hour">Hours</label>
+                        <input type="number" id="gen-link-hour" name="hour" class="input" value="1" min="0" max="23">
+                    </div>
+                    <div class="form-group">
+                        <label class="label text-xs text-muted" for="gen-link-minute">Minutes</label>
+                        <input type="number" id="gen-link-minute" name="minute" class="input" value="0" min="0" max="59">
                     </div>
                 </div>
-                <div class="col s4">
-                    <div class="input-field">
-                        <input name="hour" id="gen-link-hour" value="1" type="text" pattern="^([0-9]|1\d|2[0-3])$" class="validate">
-                        <label for="gen-link-hour">Hour</label>
-                        <span class="helper-text" data-error="Invalid hour format"></span>
-                    </div>
-                </div>
-                <div class="col s4">
-                    <div class="input-field">
-                        <input name="minute" id="gen-link-minute" value="0" type="text" pattern="^([0-9]|[1-5]\d)$" class="validate">
-                        <label for="gen-link-minute">Minute</label>
-                        <span class="helper-text" data-error="Invalid minute format"></span>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col s3">
-                    <button id="create-link-btn" class="waves-effect waves-green btn">Create link</button>
-                </div>
-                <div class="col s9 red-text text-darken-2" id="gen-url-error"></div>
-            </div>
-            <div class="row">
-                <div class="col s11">
-                    <div class="input-field">
-                        <i class="material-icons prefix" onclick="handleCopyLink()" style="cursor:pointer;">content_copy</i>
-                        <input name="generated-link" id="generated-link" type="text" readonly>
+                
+                <div id="gen-url-error" class="form-error"></div>
+                
+                <div class="form-group mt-4">
+                    <label class="label" for="generated-link">Generated URL</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="generated-link" name="generated-link" class="input" readonly placeholder="Click 'Generate Link' to create URL">
+                        <button type="button" class="btn btn-outline btn-icon" onclick="handleCopyLink()" title="Copy to clipboard">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
-    </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-download-link')">Close</button>
+                <button type="submit" class="btn btn-primary">Generate Link</button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<!-- Upload Progress Toast -->
+<div id="upload-notifications" class="toast-container" style="top: auto; bottom: 1rem;"></div>
 
 <script>
+function toggleDropdown(event, dropdownId) {
+    event.stopPropagation();
+    const dropdown = document.getElementById(dropdownId);
+    const isActive = dropdown.classList.contains('active');
+    
+    // Close all dropdowns first
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.classList.remove('active');
+    });
+    
+    if (!isActive) {
+        dropdown.classList.add('active');
+    }
+}
+
 function deleteObject(bucketName, objectName) {
+    if (!confirm('Are you sure you want to delete this object?')) return;
+    
     $.ajax({
         type: 'DELETE',
         url: '{{$.RootURL}}/api/buckets/' + bucketName + '/objects/' + objectName,
-        success: function () { location.reload(); }
-    })
+        success: function() { 
+            showToast('Success', 'Object deleted successfully');
+            setTimeout(() => location.reload(), 500);
+        },
+        error: function() {
+            showToast('Error', 'Failed to delete object');
+        }
+    });
 }
 
 function deleteBucket(bucketName) {
+    if (!confirm('Are you sure you want to delete this bucket? This action cannot be undone.')) return;
+    
     $.ajax({
         type: 'DELETE',
         url: '{{$.RootURL}}/api/buckets/' + bucketName,
-        success: function () { window.location.replace('/buckets'); }
-    })
+        success: function() { 
+            showToast('Success', 'Bucket deleted successfully');
+            setTimeout(() => window.location.replace('/buckets'), 500);
+        },
+        error: function() {
+            showToast('Error', 'Failed to delete bucket');
+        }
+    });
 }
 
 function handleUploadFiles(event) {
-    files = event.target.files
-    url = "{{$.RootURL}}/api/buckets/{{ .BucketName }}/objects"
+    const files = event.target.files;
+    const url = "{{$.RootURL}}/api/buckets/{{ .BucketName }}/objects";
     uploadFiles(files, url);
 }
 
 function handleChangePath(event) {
     event.preventDefault();
-
     const form = event.target;
     const formData = new FormData(form);
 
-    let appendPath = formData.get("new-path")
-    if(!appendPath.endsWith("/")) {
+    let appendPath = formData.get("new-path");
+    if (!appendPath.endsWith("/")) {
         appendPath = appendPath + "/";
     }
 
-    let currentPath = window.location.href
-    if(!currentPath.endsWith("/")) {
+    let currentPath = window.location.href;
+    if (!currentPath.endsWith("/")) {
         currentPath = currentPath + "/";
     }
 
     form.reset();
+    closeModal('modal-change-path');
     window.location.href = currentPath + appendPath;
 }
 
 function uploadFiles(files, url) {
-    uploadPromises = [];
-    for(file of files) {
+    const uploadPromises = [];
+    for (const file of files) {
         uploadPromises.push(uploadFile(file, url));
     }
     Promise.all(uploadPromises).then(values => {
@@ -275,14 +402,14 @@ function uploadFiles(files, url) {
 function uploadFile(file, url) {
     const formData = new FormData();
     formData.append('file', file);
-    if( !!file.webkitRelativePath ) {
-        formData.append('path', "{{ .CurrentPath }}" + file.webkitRelativePath );
+    if (file.webkitRelativePath) {
+        formData.append('path', "{{ .CurrentPath }}" + file.webkitRelativePath);
     } else {
-        formData.append('path', "{{ .CurrentPath }}" + file.name );
+        formData.append('path', "{{ .CurrentPath }}" + file.name);
     }
 
-    const notification = createNotification(file.name);
-    notifications = document.getElementById('notifications');
+    const notification = createUploadNotification(file.name);
+    const notifications = document.getElementById('upload-notifications');
     notifications.appendChild(notification);
 
     return fetch(url, {
@@ -290,27 +417,34 @@ function uploadFile(file, url) {
         body: formData
     }).then(response => {
         notifications.removeChild(notification);
-    })
+    });
 }
 
-function createNotification(fileName) {
-    notificationTemplate = document.getElementById('notification-template');
-    notification = notificationTemplate.cloneNode(true);
-    notification.getElementsByTagName('p')[0].innerHTML = fileName;
-    notification.removeAttribute("id");
-    notification.removeAttribute("style");
+function createUploadNotification(fileName) {
+    const notification = document.createElement('div');
+    notification.className = 'toast';
+    notification.innerHTML = `
+        <div class="toast-title">Uploading</div>
+        <div class="toast-description">${fileName}</div>
+        <div class="toast-progress">
+            <div class="toast-progress-bar" style="width: 100%; animation: indeterminate 1.5s infinite linear;"></div>
+        </div>
+        <style>
+            @keyframes indeterminate {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+            }
+        </style>
+    `;
     return notification;
 }
 
 function handleOpenDownloadLinkModal(objectName) {
-    const downloadLinkForm = document.forms['download-link-form']
-    downloadLinkForm.elements['objectName'].value = objectName;
-
-    const createLinkModalElement = document.getElementById('modal-create-download-link')
-    document.getElementById('generated-link').setAttribute('value', "");
-    document.getElementById('gen-url-error').innerHTML = "";
-    const modalInstance = M.Modal.init(createLinkModalElement);
-    modalInstance.open()
+    document.getElementById('objectName').value = objectName;
+    document.getElementById('download-link-object-name').textContent = objectName;
+    document.getElementById('generated-link').value = '';
+    document.getElementById('gen-url-error').innerHTML = '';
+    openModal('modal-download-link');
 }
 
 function handleGenerateDownloadLink(event) {
@@ -323,20 +457,26 @@ function handleGenerateDownloadLink(event) {
 
     const expiryTime = formData.get('day') * 24 * 60 * 60 + formData.get('hour') * 60 * 60 + formData.get('minute') * 60;
 
-    if(expiryTime > 7 * 24 * 60 * 60) {
+    if (expiryTime > 7 * 24 * 60 * 60) {
         genUrlMessage.innerHTML = "Expiry time must be less than 7 days";
+        return;
+    }
+
+    if (expiryTime <= 0) {
+        genUrlMessage.innerHTML = "Expiry time must be greater than 0";
         return;
     }
 
     $.ajax({
         type: 'GET',
-        url: '{{$.RootURL}}/api/buckets/' + {{ $.BucketName }}+ "/objects/" + objectName + "/url?expiry=" + expiryTime,
-        success: function (result) {
+        url: '{{$.RootURL}}/api/buckets/' + '{{ $.BucketName }}' + "/objects/" + objectName + "/url?expiry=" + expiryTime,
+        success: function(result) {
             genUrlMessage.innerHTML = "";
-            document.getElementById("generated-link").setAttribute('value', JSON.parse(result).url);
+            document.getElementById("generated-link").value = JSON.parse(result).url;
+            showToast('Success', 'Download link generated');
         },
         error: function(request, status, error) {
-            genUrlMessage.innerHTML = "Error when generating url";
+            genUrlMessage.innerHTML = "Error when generating URL";
         }
     });
 }
@@ -344,30 +484,46 @@ function handleGenerateDownloadLink(event) {
 function handleCopyLink() {
     const url = document.getElementById("generated-link").value;
 
-    if(!!url) {
+    if (url) {
         navigator.clipboard.writeText(url).then(function() {
-            M.toast({html: 'Copied to clipboard!'});
+            showToast('Copied!', 'Link copied to clipboard');
         }, function(err) {
             console.error('Could not copy:', err);
         });
     }
 }
 
-window.onload = (event) => {
-    $('#change-path-form').submit(handleChangePath)
-    $('#download-link-form').submit(handleGenerateDownloadLink)
+window.onload = function() {
+    document.getElementById('change-path-form').addEventListener('submit', handleChangePath);
+    document.getElementById('download-link-form').addEventListener('submit', handleGenerateDownloadLink);
 
-    uploadFolderInput = $('#upload-folder-input');
-    $('#upload-folder-btn').click(event => uploadFolderInput.click());
-    uploadFolderInput.change(handleUploadFiles);
-
-    uploadFileInput = $('#upload-file-input');
-    $('#upload-file-btn').click(event => uploadFileInput.click());
-    uploadFileInput.change(handleUploadFiles);
-
-    $(document).ready(function(){
-        $('.tooltipped').tooltip();
-    });
+    const uploadFolderInput = document.getElementById('upload-folder-input');
+    const uploadFileInput = document.getElementById('upload-file-input');
+    
+    // Regular buttons
+    const uploadFolderBtn = document.getElementById('upload-folder-btn');
+    const uploadFileBtn = document.getElementById('upload-file-btn');
+    
+    if (uploadFolderBtn) {
+        uploadFolderBtn.addEventListener('click', () => uploadFolderInput.click());
+    }
+    if (uploadFileBtn) {
+        uploadFileBtn.addEventListener('click', () => uploadFileInput.click());
+    }
+    
+    // Empty state buttons
+    const uploadFolderBtnEmpty = document.getElementById('upload-folder-btn-empty');
+    const uploadFileBtnEmpty = document.getElementById('upload-file-btn-empty');
+    
+    if (uploadFolderBtnEmpty) {
+        uploadFolderBtnEmpty.addEventListener('click', () => uploadFolderInput.click());
+    }
+    if (uploadFileBtnEmpty) {
+        uploadFileBtnEmpty.addEventListener('click', () => uploadFileInput.click());
+    }
+    
+    uploadFolderInput.addEventListener('change', handleUploadFiles);
+    uploadFileInput.addEventListener('change', handleUploadFiles);
 };
 </script>
 {{ end }}
