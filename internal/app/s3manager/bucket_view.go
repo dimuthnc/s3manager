@@ -26,12 +26,16 @@ func HandleBucketView(s3 S3, templates fs.FS, allowDelete bool, listRecursive bo
 	}
 
 	type pageData struct {
-		RootURL     string
-		BucketName  string
-		Objects     []objectWithIcon
-		AllowDelete bool
-		Paths       []string
-		CurrentPath string
+		RootURL      string
+		BucketName   string
+		Objects      []objectWithIcon
+		AllowDelete  bool
+		Paths        []string
+		CurrentPath  string
+		CurrentS3    *S3Instance
+		S3Instances  []*S3Instance
+		HasError     bool
+		ErrorMessage string
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

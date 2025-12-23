@@ -53,7 +53,7 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "No objects in",
+			expectedBodyContains: "No objects yet",
 		},
 		{
 			it: "renders a bucket containing an archive",
@@ -67,7 +67,7 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "archive",
+			expectedBodyContains: "archive.tar.gz",
 		},
 		{
 			it: "renders a bucket containing an image",
@@ -81,7 +81,7 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "photo",
+			expectedBodyContains: "FILE-NAME.png",
 		},
 		{
 			it: "renders a bucket containing a sound file",
@@ -95,7 +95,7 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "music_note",
+			expectedBodyContains: "FILE-NAME.mp3",
 		},
 		{
 			it: "returns error if the bucket doesn't exist",
@@ -137,7 +137,7 @@ func TestHandleBucketView(t *testing.T) {
 			},
 			bucketName:           "BUCKET-NAME",
 			expectedStatusCode:   http.StatusOK,
-			expectedBodyContains: "folder",
+			expectedBodyContains: "AFolder",
 		},
 		{
 			it: "renders a bucket with path",
@@ -208,7 +208,7 @@ func TestHandleBucketView(t *testing.T) {
 
 			// fmt.Println(string(body))
 			if tc.expectedStatusCode == http.StatusOK {
-				hyperlink := fmt.Sprintf("<a href=\"%s/buckets\" class=\"breadcrumb\"><i class=\"material-icons\">arrow_back</i> buckets </a>", tc.rootUrl)
+				hyperlink := fmt.Sprintf("<a href=\"%s/buckets\">", tc.rootUrl)
 				is.True(strings.Contains(string(body), hyperlink))
 			}
 		})

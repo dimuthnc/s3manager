@@ -100,6 +100,14 @@ There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/
 $ docker-compose up
 ```
 
+## Credits
+
+This is a fork of [cloudlena/s3manager](https://github.com/cloudlena/s3manager) with the following modifications:
+- Completely revamped UI using [shadcn/ui](https://ui.shadcn.com/) design system
+- Replaced Materialize CSS with custom CSS based on shadcn/ui components
+- Modern, clean interface with improved user experience
+- SVG icons replacing Material Icons font dependency
+
 ## GitHub Stars
 
 [![GitHub stars over time](https://starchart.cc/cloudlena/s3manager.svg?variant=adaptive)](https://starchart.cc/cloudlena/s3manager)
