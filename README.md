@@ -1,11 +1,33 @@
 # S3 Manager
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/cloudlena/s3manager)](https://goreportcard.com/report/github.com/cloudlena/s3manager)
-[![Build Status](https://github.com/cloudlena/s3manager/actions/workflows/main.yml/badge.svg)](https://github.com/cloudlena/s3manager/actions)
-
 A Web GUI written in Go to manage S3 buckets from any provider.
 
-![Screenshot](https://raw.githubusercontent.com/cloudlena/s3manager/main/screenshot.png)
+> **Note:** This is a fork of [cloudlena/s3manager](https://github.com/cloudlena/s3manager) with a completely redesigned UI using [shadcn/ui](https://ui.shadcn.com/) design principles.
+
+## What's Different in This Fork?
+
+- 🎨 **Modern UI** - Completely revamped interface using shadcn/ui design system
+- 🧹 **Clean Design** - Replaced Materialize CSS with custom shadcn/ui-based styling
+- 📦 **Lightweight** - SVG icons instead of Material Icons font dependency
+- ✨ **Better UX** - Improved modals, toasts, tables, and empty states
+
+## Docker Image
+
+This custom image is available on Docker Hub:
+
+```bash
+# Latest version
+docker pull dimuthnc/s3manager:latest
+
+# Specific version
+docker pull dimuthnc/s3manager:v1.0.0
+```
+
+**Available Tags:**
+| Tag | Description |
+|-----|-------------|
+| `dimuthnc/s3manager:latest` | Latest build |
+| `dimuthnc/s3manager:v1.0.0` | Initial release with shadcn/ui design |
 
 ## Features
 
@@ -13,101 +35,134 @@ A Web GUI written in Go to manage S3 buckets from any provider.
 - Create a new bucket
 - List all objects in a bucket
 - Upload new objects to a bucket
-- Download object from a bucket
-- Delete an object in a bucket
+- Download objects from a bucket
+- Delete objects in a bucket
+- Generate presigned download URLs
+- Switch between multiple S3 instances
 
-## Usage
+## Quick Start
 
-### Configuration
+```bash
+docker run -p 8080:8080 \
+  -e 'ACCESS_KEY_ID=your-access-key' \
+  -e 'SECRET_ACCESS_KEY=your-secret-key' \
+  -e 'ENDPOINT=s3.amazonaws.com' \
+  dimuthnc/s3manager:latest
+```
+
+Then visit <http://localhost:8080>
+
+## Configuration
 
 The application can be configured with the following environment variables:
 
-- `ENDPOINT`: The endpoint of your S3 server (defaults to `s3.amazonaws.com`)
-- `REGION`: The region of your S3 server (defaults to `""`)
-- `ACCESS_KEY_ID`: Your S3 access key ID (required) (works only if `USE_IAM` is `false`)
-- `SECRET_ACCESS_KEY`: Your S3 secret access key (required) (works only if `USE_IAM` is `false`)
-- `USE_SSL`: Whether your S3 server uses SSL or not (defaults to `true`)
-- `SKIP_SSL_VERIFICATION`: Whether the HTTP client should skip SSL verification (defaults to `false`)
-- `SIGNATURE_TYPE`: The signature type to be used (defaults to `V4`; valid values are `V2, V4, V4Streaming, Anonymous`)
-- `PORT`: The port the app should listen on (defaults to `8080`)
-- `ALLOW_DELETE`: Enable buttons to delete objects (defaults to `true`)
-- `FORCE_DOWNLOAD`: Add response headers for object downloading instead of opening in a new tab (defaults to `true`)
-- `LIST_RECURSIVE`: List all objects in buckets recursively (defaults to `false`)
-- `USE_IAM`: Use IAM role instead of key pair (defaults to `false`)
-- `IAM_ENDPOINT`: Endpoint for IAM role retrieving (Can be blank for AWS)
-- `SSE_TYPE`: Specified server side encryption (defaults blank) Valid values can be `SSE`, `KMS`, `SSE-C` all others values don't enable the SSE
-- `SSE_KEY`: The key needed for SSE method (only for `KMS` and `SSE-C`)
-- `TIMEOUT`: The read and write timeout in seconds (default to `600` - 10 minutes)
-- `ROOT_URL`: A root URL prefix if running behind a reverse proxy (defaults to unset)
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ENDPOINT` | The endpoint of your S3 server | `s3.amazonaws.com` |
+| `REGION` | The region of your S3 server | `""` |
+| `ACCESS_KEY_ID` | Your S3 access key ID (required if `USE_IAM` is `false`) | - |
+| `SECRET_ACCESS_KEY` | Your S3 secret access key (required if `USE_IAM` is `false`) | - |
+| `USE_SSL` | Whether your S3 server uses SSL | `true` |
+| `SKIP_SSL_VERIFICATION` | Skip SSL verification | `false` |
+| `SIGNATURE_TYPE` | Signature type (`V2`, `V4`, `V4Streaming`, `Anonymous`) | `V4` |
+| `PORT` | Port the app listens on | `8080` |
+| `ALLOW_DELETE` | Enable delete buttons | `true` |
+| `FORCE_DOWNLOAD` | Force download instead of opening in browser | `true` |
+| `LIST_RECURSIVE` | List all objects recursively | `false` |
+| `USE_IAM` | Use IAM role instead of key pair | `false` |
+| `IAM_ENDPOINT` | Endpoint for IAM role retrieving | `""` |
+| `SSE_TYPE` | Server side encryption (`SSE`, `KMS`, `SSE-C`) | `""` |
+| `SSE_KEY` | Key for SSE (only for `KMS` and `SSE-C`) | `""` |
+| `TIMEOUT` | Read and write timeout in seconds | `600` |
+| `ROOT_URL` | Root URL prefix for reverse proxy | `""` |
 
-### Build and Run Locally
+## Usage Examples
 
-1.  Run `make build`
-1.  Execute the created binary and visit <http://localhost:8080>
+### With MinIO
 
-### Run Container image
+```bash
+docker run -p 8080:8080 \
+  -e 'ENDPOINT=play.min.io' \
+  -e 'ACCESS_KEY_ID=minioadmin' \
+  -e 'SECRET_ACCESS_KEY=minioadmin' \
+  dimuthnc/s3manager:latest
+```
 
-1. Run `docker run -p 8080:8080 -e 'ACCESS_KEY_ID=XXX' -e 'SECRET_ACCESS_KEY=xxx' cloudlena/s3manager`
+### With AWS S3
+
+```bash
+docker run -p 8080:8080 \
+  -e 'ENDPOINT=s3.amazonaws.com' \
+  -e 'REGION=us-east-1' \
+  -e 'ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE' \
+  -e 'SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' \
+  dimuthnc/s3manager:latest
+```
+
+### Using Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  s3manager:
+    image: dimuthnc/s3manager:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - ENDPOINT=s3.amazonaws.com
+      - ACCESS_KEY_ID=your-access-key
+      - SECRET_ACCESS_KEY=your-secret-key
+```
 
 ### Deploy to Kubernetes
 
-You can deploy S3 Manager to a Kubernetes cluster using the [Helm chart](https://github.com/sergeyshevch/s3manager-helm).
-
-#### Running behind a reverse proxy
-
-If there are multiple S3 users/accounts in a site then multiple instances of the S3 manager can be run in Kubernetes and expose behind a single nginx reverse proxy ingress.
-The s3manager can be run with a `ROOT_URL` environment variable set that accounts for the reverse proxy location.
-
-If the nginx configuration block looks like:
-
-```nginx
-    location /teamx/ {
-        proxy_pass http://s3manager-teamx:8080/;
-        auth_basic "teamx";
-        auth_basic_user_file /conf/teamx-htpasswd;
-    }
-    location /teamy/ {
-        proxy_pass http://s3manager-teamy:8080/;
-        <other nginx settings>
-    }
-```
-
-Then the instance behind the `s3manager-teamx` service has `ROOT_URL=teamx` and the instance behind `s3manager-teamy` has `ROOT_URL=teamy`.
-Other nginx settings can be applied to each location.
-The nginx instance can be hosted on some reachable address and reverse proxy to the different S3 accounts.
+You can adapt the [Helm chart](https://github.com/sergeyshevch/s3manager-helm) for use with this image by updating the image repository to `dimuthnc/s3manager`.
 
 ## Development
 
-### Lint Code
+### Build and Run Locally
 
-1. Run `make lint`
+```bash
+make build
+./bin/s3manager
+```
 
 ### Run Tests
 
-1.  Run `make test`
+```bash
+make test
+```
+
+### Lint Code
+
+```bash
+make lint
+```
 
 ### Build Container Image
 
-The image is available on [Docker Hub](https://hub.docker.com/r/cloudlena/s3manager/).
+```bash
+make build-image
+```
 
-1.  Run `make build-image`
+### Run with Docker Compose (Local Development)
 
-### Run Locally for Testing
-
-There is an example [docker-compose.yml](https://github.com/cloudlena/s3manager/blob/main/docker-compose.yml) file that spins up an S3 service and the S3 Manager. You can try it by issuing the following command:
-
-```shell
-$ docker-compose up
+```bash
+docker-compose up
 ```
 
 ## Credits
 
-This is a fork of [cloudlena/s3manager](https://github.com/cloudlena/s3manager) with the following modifications:
+This project is a fork of [cloudlena/s3manager](https://github.com/cloudlena/s3manager) by Lena Fuhrimann.
+
+**Modifications in this fork:**
 - Completely revamped UI using [shadcn/ui](https://ui.shadcn.com/) design system
 - Replaced Materialize CSS with custom CSS based on shadcn/ui components
 - Modern, clean interface with improved user experience
 - SVG icons replacing Material Icons font dependency
 
-## GitHub Stars
+## License
 
-[![GitHub stars over time](https://starchart.cc/cloudlena/s3manager.svg?variant=adaptive)](https://starchart.cc/cloudlena/s3manager)
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+Original work Copyright 2016 Lena Fuhrimann.
