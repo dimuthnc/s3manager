@@ -39,6 +39,7 @@ docker pull dimuthnc/s3manager:v1.3.0
 - Upload new objects to a bucket
 - Download objects from a bucket
 - Move or copy files and folders between buckets and folders (including across S3 instances)
+- Download a whole folder as a single ZIP archive
 - Delete objects in a bucket
 - Generate presigned download URLs
 - Switch between multiple S3 instances
@@ -81,6 +82,26 @@ The application can be configured with the following environment variables:
 | `ROOT_URL` | Root URL prefix for reverse proxy | `""` |
 | `USERNAME` | Login username (base64 encoded). Authentication is enabled only if both `USERNAME` and `PASSWORD` are set. | `""` |
 | `PASSWORD` | Login password (base64 encoded). Authentication is enabled only if both `USERNAME` and `PASSWORD` are set. | `""` |
+
+## Downloading a Folder as a ZIP Archive
+
+Individual files can be downloaded from the object action menu. To download an
+entire folder, open the action menu (the three dots at the end of the folder
+row) and choose **Download as ZIP**.
+
+- Every object below the folder is added to one archive, preserving the internal
+  folder structure; the archive is named after the folder (e.g. `holiday.zip`).
+- The archive is streamed to the browser while it is built, so nothing is stored
+  on disk and memory usage does not grow with the size of the folder. Large
+  folders simply take longer to download.
+- Zero-byte folder marker objects are skipped, and a folder with no objects
+  returns `HTTP 404`.
+- The download is served by `GET /api/buckets/{bucket}/objects/{folder}/zip`
+  against the currently selected S3 instance.
+
+> **Note:** Because the response is streamed, a failure that occurs after the
+> first bytes have been sent cannot change the HTTP status. Such errors are
+> logged by the server and the browser receives a truncated archive.
 
 ## Authentication
 

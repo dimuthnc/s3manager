@@ -129,6 +129,16 @@ func HandleGetObjectWithManager(manager *MultiS3Manager, forceDownload bool) htt
 	}
 }
 
+// HandleDownloadFolderWithManager streams a folder as a ZIP archive using MultiS3Manager.
+func HandleDownloadFolderWithManager(manager *MultiS3Manager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s3 := manager.GetCurrentClient()
+		// Delegate to the original handler with the current S3 client
+		handler := HandleDownloadFolder(s3)
+		handler(w, r)
+	}
+}
+
 // HandleDeleteObjectWithManager deletes an object using MultiS3Manager.
 func HandleDeleteObjectWithManager(manager *MultiS3Manager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
