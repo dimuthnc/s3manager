@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Download a folder as a ZIP file.** Folders can now be downloaded in one go
+  from the folder action menu via a new **Download as ZIP** entry, removing the
+  need to download each object individually.
+  - Every object below the folder prefix is listed recursively and written into
+    a single archive that preserves the internal folder structure; entry names
+    are relative to the downloaded folder.
+  - The archive is streamed to the browser as it is built, so no temporary file
+    is created and memory usage is independent of the folder size.
+  - Zero-byte folder marker objects are skipped. A folder containing no objects
+    is rejected with `HTTP 404` instead of producing an empty archive.
+  - The archive is named after the folder (`holiday.zip`); downloading a bucket
+    root produces `<bucket>.zip`. The `Content-Disposition` header carries both
+    an ASCII fallback and a UTF-8 encoded file name.
+  - New endpoint: `GET /api/buckets/{bucket}/objects/{folder}/zip`.
+
 ## [1.3.0] - 2026-06-22
 
 ### Added
